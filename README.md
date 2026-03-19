@@ -160,4 +160,9 @@ Note: please set `x-password` header with the password to decrypt the vault shar
 
 see config-example.yaml
 
+## Changes from upstream
 
+- Added `logs/` and `.env` to `.gitignore`
+- Removed email notification functionality
+- Removed demo Makefile
+- Removed vault `name` field from all API requests, responses, and internal usage
