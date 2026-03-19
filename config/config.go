@@ -25,10 +25,6 @@ type Config struct {
 		Server string `mapstructure:"server" json:"server"`
 	} `mapstructure:"relay" json:"relay,omitempty"`
 
-	EmailServer struct {
-		ApiKey string `mapstructure:"api_key" json:"api_key"`
-	} `mapstructure:"email_server" json:"email_server"`
-
 	BlockStorage struct {
 		Host      string `mapstructure:"host" json:"host"`
 		Region    string `mapstructure:"region" json:"region"`

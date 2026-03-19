@@ -30,7 +30,6 @@ func (s *WorkerService) HandleKeyGenerationDKLS(ctx context.Context, t *asynq.Ta
 		"name":           req.Name,
 		"session":        req.SessionID,
 		"local_party_id": req.LocalPartyId,
-		"email":          req.Email,
 	}).Info("Joining keygen")
 	s.incCounter("worker.vault.create.dkls", []string{})
 	if err := req.IsValid(); err != nil {
@@ -139,7 +138,6 @@ func (s *WorkerService) HandleCreateMldsa(ctx context.Context, t *asynq.Task) er
 	s.logger.WithFields(logrus.Fields{
 		"public_key": req.PublicKey,
 		"session":    req.SessionID,
-		"email":      req.Email,
 	}).Info("Creating MLDSA key")
 	s.incCounter("worker.vault.mldsa", []string{})
 	if err := req.IsValid(); err != nil {
@@ -306,7 +304,6 @@ func (s *WorkerService) HandleImport(ctx context.Context, t *asynq.Task) error {
 		"name":           req.Name,
 		"session":        req.SessionID,
 		"local_party_id": req.LocalPartyId,
-		"email":          req.Email,
 	}).Info("Joining KeyImport")
 	s.incCounter("worker.vault.import.dkls", []string{})
 	if err := req.IsValid(); err != nil {

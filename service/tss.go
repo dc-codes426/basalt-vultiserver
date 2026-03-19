@@ -26,7 +26,7 @@ import (
 
 type VaultOperation interface {
 	BackupVault(req types.VaultCreateRequest, partiesJoined []string, ecdsaPubkey, eddsaPubkey, hexChainCode string, localStateAccessor *relay.LocalStateAccessorImp) error
-	SaveVaultAndScheduleEmail(vault *vaultType.Vault, encryptionPassword, email string) error
+	SaveVault(vault *vaultType.Vault, encryptionPassword string) error
 }
 
 func (s *WorkerService) JoinKeyGeneration(req types.VaultCreateRequest) (string, string, error) {
@@ -205,7 +205,7 @@ func (s *WorkerService) BackupVault(req types.VaultCreateRequest,
 	default:
 		return fmt.Errorf("invalid lib type for vault: %d", req.LibType)
 	}
-	return s.SaveVaultAndScheduleEmail(vault, req.EncryptionPassword, req.Email)
+	return s.SaveVault(vault, req.EncryptionPassword)
 }
 
 func (s *WorkerService) createTSSService(serverURL, Session, HexEncryptionKey string, localStateAccessor tss.LocalStateAccessor, createPreParam bool, messageID string) (*tss.ServiceImpl, error) {

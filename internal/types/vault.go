@@ -23,7 +23,6 @@ type VaultCreateRequest struct {
 	HexChainCode       string  `json:"hex_chain_code" validate:"required"`
 	LocalPartyId       string  `json:"local_party_id"`                          // when this field is empty , then server will generate a random local party id
 	EncryptionPassword string  `json:"encryption_password" validate:"required"` // password used to encrypt the vault file
-	Email              string  `json:"email" validate:"required"`               // this is the email of the user that the vault backup will be sent to
 	LibType            LibType `json:"lib_type"`                                // this is the type of the vault
 }
 
@@ -57,9 +56,6 @@ func (req *VaultCreateRequest) IsValid() error {
 	if req.EncryptionPassword == "" {
 		return fmt.Errorf("encryption_password is required")
 	}
-	if req.Email == "" {
-		return fmt.Errorf("email is required")
-	}
 	return nil
 }
 
@@ -69,7 +65,6 @@ type CreateMldsaRequest struct {
 	SessionID          string `json:"session_id"`          // UUID session ID for the keygen protocol
 	HexEncryptionKey   string `json:"hex_encryption_key"`  // 32-byte hex key for encrypting keygen messages
 	EncryptionPassword string `json:"encryption_password"` // password to decrypt the vault file
-	Email              string `json:"email"`               // email address to receive the updated vault backup
 }
 
 func (req *CreateMldsaRequest) IsValid() error {
@@ -90,9 +85,6 @@ func (req *CreateMldsaRequest) IsValid() error {
 	}
 	if req.EncryptionPassword == "" {
 		return fmt.Errorf("encryption_password is required")
-	}
-	if req.Email == "" {
-		return fmt.Errorf("email is required")
 	}
 	return nil
 }

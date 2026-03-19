@@ -23,7 +23,6 @@ type ReshareRequest struct {
 	LocalPartyId       string      `json:"local_party_id"`      // local party id
 	OldParties         []string    `json:"old_parties"`         // old parties
 	EncryptionPassword string      `json:"encryption_password"` // password used to encrypt the vault file
-	Email              string      `json:"email"`
 	OldResharePrefix   string      `json:"old_reshare_prefix"`
 	LibType            LibType     `json:"lib_type"`
 	ReshareType        ReshareType `json:"reshare_type"`
@@ -35,7 +34,6 @@ type BatchReshareRequest struct {
 	HexEncryptionKey   string   `json:"hex_encryption_key"`
 	LocalPartyId       string   `json:"local_party_id"`
 	EncryptionPassword string   `json:"encryption_password"`
-	Email              string   `json:"email"`
 	OldParties         []string `json:"old_parties"`
 	Protocols          []string `json:"protocols"`
 }
@@ -99,9 +97,6 @@ func (req *ReshareRequest) IsValid() error {
 	}
 	if req.EncryptionPassword == "" {
 		return fmt.Errorf("encryption_password is required")
-	}
-	if req.Email == "" && req.ReshareType != Plugin {
-		return fmt.Errorf("email is required")
 	}
 	if len(req.OldParties) == 0 {
 		return fmt.Errorf("old_parties is required")

@@ -1,13 +1,9 @@
 package service
 
 import (
-	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"time"
 
 	"github.com/DataDog/datadog-go/statsd"
@@ -78,7 +74,6 @@ func (s *WorkerService) HandleKeyGeneration(ctx context.Context, t *asynq.Task) 
 		"name":           req.Name,
 		"session":        req.SessionID,
 		"local_party_id": req.LocalPartyId,
-		"email":          req.Email,
 	}).Info("Joining keygen")
 	s.incCounter("worker.vault.create", []string{})
 	if err := req.IsValid(); err != nil {
@@ -157,180 +152,6 @@ func (s *WorkerService) HandleKeySign(ctx context.Context, t *asynq.Task) error 
 
 	return nil
 }
-func (s *WorkerService) HandleEmailVaultBackup(ctx context.Context, t *asynq.Task) error {
-	if err := contexthelper.CheckCancellation(ctx); err != nil {
-		return err
-	}
-	s.incCounter("worker.vault.backup.email", []string{})
-	var req types.EmailRequest
-	if err := json.Unmarshal(t.Payload(), &req); err != nil {
-		s.logger.Errorf("json.Unmarshal failed: %v", err)
-		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
-	}
-	s.logger.WithFields(logrus.Fields{
-		"email":    req.Email,
-		"filename": req.FileName,
-	}).Info("sending email")
-	emailServer := "https://mandrillapp.com/api/1.0/messages/send-template"
-	payload := MandrillPayload{
-		Key:          s.cfg.EmailServer.ApiKey,
-		TemplateName: "fastvault",
-		TemplateContent: []MandrilMergeVarContent{
-			{
-				Name:    "VAULT_NAME",
-				Content: req.VaultName,
-			},
-			{
-				Name:    "VERIFICATION_CODE",
-				Content: req.Code,
-			},
-		},
-		Message: MandrillMessage{
-			To: []MandrillTo{
-				{
-					Email: req.Email,
-					Type:  "to",
-				},
-			},
-			MergeVars: []MandrillVar{
-				{
-					Rcpt: req.Email,
-					Vars: []MandrilMergeVarContent{
-						{
-							Name:    "VAULT_NAME",
-							Content: req.VaultName,
-						},
-						{
-							Name:    "VERIFICATION_CODE",
-							Content: req.Code,
-						},
-					},
-				},
-			},
-			SendingDomain: "mail.vultisig.com",
-			Attachments: []MandrillAttachment{
-				{
-					Type:    "application/octet-stream",
-					Name:    req.FileName,
-					Content: base64.StdEncoding.EncodeToString([]byte(req.FileContent)),
-				},
-			},
-		},
-	}
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		s.logger.Errorf("json.Marshal failed: %v", err)
-		return fmt.Errorf("json.Marshal failed: %v: %w", err, asynq.SkipRetry)
-	}
-	resp, err := http.Post(emailServer, "application/json", bytes.NewReader(payloadBytes))
-	if err != nil {
-		s.logger.Errorf("http.Post failed: %v", err)
-		return fmt.Errorf("http.Post failed: %w", err)
-	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			s.logger.Errorf("failed to close body: %v", err)
-		}
-	}()
-	if resp.StatusCode != http.StatusOK {
-		s.logger.Errorf("http.Post failed: %s", resp.Status)
-		return fmt.Errorf("http.Post failed: %s: %w", resp.Status, asynq.SkipRetry)
-	}
-	result, err := io.ReadAll(resp.Body)
-	if err != nil {
-		s.logger.Errorf("io.ReadAll failed: %v", err)
-		return fmt.Errorf("io.ReadAll failed: %w", err)
-	}
-	s.logger.Info(string(result))
-	if _, err := t.ResultWriter().Write([]byte("email sent")); err != nil {
-		return fmt.Errorf("t.ResultWriter.Write failed: %v", err)
-	}
-	return nil
-}
-
-func (s *WorkerService) HandleResendVaultShareEmail(ctx context.Context, t *asynq.Task) error {
-	if err := contexthelper.CheckCancellation(ctx); err != nil {
-		return err
-	}
-	s.incCounter("worker.vault.resend.email", []string{})
-	var req types.ResendVaultShareEmailRequest
-	if err := json.Unmarshal(t.Payload(), &req); err != nil {
-		s.logger.Errorf("json.Unmarshal failed: %v", err)
-		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
-	}
-	s.logger.WithFields(logrus.Fields{
-		"email":    req.Email,
-		"filename": req.FileName,
-	}).Info("resending vault share email")
-	emailServer := "https://mandrillapp.com/api/1.0/messages/send-template"
-	payload := MandrillPayload{
-		Key:          s.cfg.EmailServer.ApiKey,
-		TemplateName: "fastvault-resend",
-		TemplateContent: []MandrilMergeVarContent{
-			{
-				Name:    "VAULT_NAME",
-				Content: req.VaultName,
-			},
-		},
-		Message: MandrillMessage{
-			To: []MandrillTo{
-				{
-					Email: req.Email,
-					Type:  "to",
-				},
-			},
-			MergeVars: []MandrillVar{
-				{
-					Rcpt: req.Email,
-					Vars: []MandrilMergeVarContent{
-						{
-							Name:    "VAULT_NAME",
-							Content: req.VaultName,
-						},
-					},
-				},
-			},
-			SendingDomain: "mail.vultisig.com",
-			Attachments: []MandrillAttachment{
-				{
-					Type:    "application/octet-stream",
-					Name:    req.FileName,
-					Content: base64.StdEncoding.EncodeToString([]byte(req.FileContent)),
-				},
-			},
-		},
-	}
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		s.logger.Errorf("json.Marshal failed: %v", err)
-		return fmt.Errorf("json.Marshal failed: %v: %w", err, asynq.SkipRetry)
-	}
-	resp, err := http.Post(emailServer, "application/json", bytes.NewReader(payloadBytes))
-	if err != nil {
-		s.logger.Errorf("http.Post failed: %v", err)
-		return fmt.Errorf("http.Post failed: %w", err)
-	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			s.logger.Errorf("failed to close body: %v", err)
-		}
-	}()
-	if resp.StatusCode != http.StatusOK {
-		s.logger.Errorf("http.Post failed: %s", resp.Status)
-		return fmt.Errorf("http.Post failed: %s: %w", resp.Status, asynq.SkipRetry)
-	}
-	result, err := io.ReadAll(resp.Body)
-	if err != nil {
-		s.logger.Errorf("io.ReadAll failed: %v", err)
-		return fmt.Errorf("io.ReadAll failed: %w", err)
-	}
-	s.logger.Info(string(result))
-	if _, err := t.ResultWriter().Write([]byte("email sent")); err != nil {
-		return fmt.Errorf("t.ResultWriter.Write failed: %v", err)
-	}
-	return nil
-}
-
 func (s *WorkerService) HandleReshare(ctx context.Context, t *asynq.Task) error {
 	if err := contexthelper.CheckCancellation(ctx); err != nil {
 		return err
@@ -347,7 +168,6 @@ func (s *WorkerService) HandleReshare(ctx context.Context, t *asynq.Task) error 
 		"name":           req.Name,
 		"session":        req.SessionID,
 		"local_party_id": req.LocalPartyId,
-		"email":          req.Email,
 	}).Info("reshare request")
 	if err := req.IsValid(); err != nil {
 		return fmt.Errorf("invalid reshare request: %s: %w", err, asynq.SkipRetry)
@@ -376,8 +196,7 @@ func (s *WorkerService) HandleReshare(ctx context.Context, t *asynq.Task) error 
 		req.SessionID,
 		req.HexEncryptionKey,
 		s.cfg.Relay.Server,
-		req.EncryptionPassword,
-		req.Email); err != nil {
+		req.EncryptionPassword); err != nil {
 		s.logger.Errorf("reshare failed: %v", err)
 		return fmt.Errorf("reshare failed: %v: %w", err, asynq.SkipRetry)
 	}
@@ -404,7 +223,6 @@ func (s *WorkerService) HandleReshareDKLS(ctx context.Context, t *asynq.Task) er
 		"name":           req.Name,
 		"session":        req.SessionID,
 		"local_party_id": req.LocalPartyId,
-		"email":          req.Email,
 	}).Info("reshare request")
 	if err := req.IsValid(); err != nil {
 		return fmt.Errorf("invalid reshare request: %s: %w", err, asynq.SkipRetry)
@@ -441,7 +259,6 @@ func (s *WorkerService) HandleReshareDKLS(ctx context.Context, t *asynq.Task) er
 		req.SessionID,
 		req.HexEncryptionKey,
 		req.EncryptionPassword,
-		req.Email,
 		req.ReshareType == types.Plugin); err != nil {
 		s.logger.Errorf("reshare failed: %v", err)
 		return fmt.Errorf("reshare failed: %v: %w", err, asynq.SkipRetry)
@@ -463,7 +280,6 @@ func (s *WorkerService) HandleMigrateDKLS(ctx context.Context, t *asynq.Task) er
 	s.incCounter("worker.vault.migrate.dkls", []string{})
 	s.logger.WithFields(logrus.Fields{
 		"session": req.SessionID,
-		"email":   req.Email,
 	}).Info("migrate request")
 	if err := req.IsValid(); err != nil {
 		return fmt.Errorf("invalid migrate request: %s: %w", err, asynq.SkipRetry)
@@ -483,7 +299,7 @@ func (s *WorkerService) HandleMigrateDKLS(ctx context.Context, t *asynq.Task) er
 		return fmt.Errorf("NewDKLSTssService failed: %v: %w", err, asynq.SkipRetry)
 	}
 
-	if err := service.ProceeMigration(localState.Vault, req.SessionID, req.HexEncryptionKey, req.EncryptionPassword, req.Email); err != nil {
+	if err := service.ProceeMigration(localState.Vault, req.SessionID, req.HexEncryptionKey, req.EncryptionPassword); err != nil {
 		s.logger.Errorf("migrate failed: %v", err)
 		return fmt.Errorf("migrate failed: %v: %w", err, asynq.SkipRetry)
 	}

@@ -26,8 +26,7 @@ func rightPadWithZeros(input string, length int) string {
 func (t *DKLSTssService) ProceeMigration(vault *vaultType.Vault,
 	sessionID string,
 	hexEncryptionKey string,
-	encryptionPassword string,
-	email string) error {
+	encryptionPassword string) error {
 	serverURL := t.cfg.Relay.Server
 	relayClient := relay.NewRelayClient(serverURL)
 	if vault.Name == "" {
@@ -163,7 +162,7 @@ func (t *DKLSTssService) ProceeMigration(vault *vaultType.Vault,
 		LibType:       keygenType.LibType_LIB_TYPE_DKLS,
 		ResharePrefix: "",
 	}
-	return t.backup.SaveVaultAndScheduleEmail(newVault, encryptionPassword, email)
+	return t.backup.SaveVault(newVault, encryptionPassword)
 }
 
 func (t *DKLSTssService) migrateWithRetry(publicKey string,

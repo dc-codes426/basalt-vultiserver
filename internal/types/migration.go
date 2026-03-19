@@ -12,7 +12,6 @@ type MigrationRequest struct {
 	SessionID          string `json:"session_id"`          // session id
 	HexEncryptionKey   string `json:"hex_encryption_key"`  // hex encryption key
 	EncryptionPassword string `json:"encryption_password"` // password used to encrypt the vault file
-	Email              string `json:"email"`
 }
 
 func (req *MigrationRequest) IsValid() error {
@@ -30,9 +29,6 @@ func (req *MigrationRequest) IsValid() error {
 	}
 	if req.EncryptionPassword == "" {
 		return fmt.Errorf("encryption_password is required")
-	}
-	if req.Email == "" {
-		return fmt.Errorf("email is required")
 	}
 	return nil
 }

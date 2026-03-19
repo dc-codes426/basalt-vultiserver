@@ -226,5 +226,5 @@ func (t *DKLSTssService) saveImportedVault(
 		})
 	}
 
-	return t.backup.SaveVaultAndScheduleEmail(vault, req.EncryptionPassword, req.Email)
+	return t.backup.SaveVault(vault, req.EncryptionPassword)
 }

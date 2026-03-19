@@ -14,7 +14,6 @@ type KeyImportRequest struct {
 	HexChainCode       string   `json:"hex_chain_code" validate:"required"`
 	LocalPartyId       string   `json:"local_party_id"`                          // when this field is empty , then server will generate a random local party id
 	EncryptionPassword string   `json:"encryption_password" validate:"required"` // password used to encrypt the vault file
-	Email              string   `json:"email" validate:"required"`               // this is the email of the user that the vault backup will be sent to
 	Chains             []string `json:"chains" validate:"required"`              // chains to import the key for
 }
 
@@ -44,9 +43,6 @@ func (req *KeyImportRequest) IsValid() error {
 	if req.EncryptionPassword == "" {
 		return fmt.Errorf("encryption_password is required")
 	}
-	if req.Email == "" {
-		return fmt.Errorf("email is required")
-	}
 	if len(req.Chains) == 0 {
 		return fmt.Errorf("at least one chain is required")
 	}
@@ -59,7 +55,6 @@ type BatchImportRequest struct {
 	HexEncryptionKey   string   `json:"hex_encryption_key"`
 	LocalPartyId       string   `json:"local_party_id"`
 	EncryptionPassword string   `json:"encryption_password"`
-	Email              string   `json:"email"`
 	Protocols          []string `json:"protocols"`
 	Chains             []string `json:"chains"`
 }

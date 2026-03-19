@@ -44,8 +44,7 @@ func main() {
 			Logger:      logrus.StandardLogger(),
 			Concurrency: 10,
 			Queues: map[string]int{
-				tasks.QUEUE_NAME:       10,
-				tasks.EMAIL_QUEUE_NAME: 100,
+				tasks.QUEUE_NAME: 10,
 			},
 		},
 	)
@@ -54,7 +53,6 @@ func main() {
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(tasks.TypeKeyGeneration, workerServce.HandleKeyGeneration)
 	mux.HandleFunc(tasks.TypeKeySign, workerServce.HandleKeySign)
-	mux.HandleFunc(tasks.TypeEmailVaultBackup, workerServce.HandleEmailVaultBackup)
 	mux.HandleFunc(tasks.TypeReshare, workerServce.HandleReshare)
 	mux.HandleFunc(tasks.TypeKeyGenerationDKLS, workerServce.HandleKeyGenerationDKLS)
 	mux.HandleFunc(tasks.TypeKeySignDKLS, workerServce.HandleKeySignDKLS)
@@ -65,7 +63,6 @@ func main() {
 	mux.HandleFunc(tasks.TypeKeygenBatch, workerServce.HandleKeygenBatch)
 	mux.HandleFunc(tasks.TypeReshareBatch, workerServce.HandleReshareBatch)
 	mux.HandleFunc(tasks.TypeImportBatch, workerServce.HandleImportBatch)
-	mux.HandleFunc(tasks.TypeResendVaultShareEmail, workerServce.HandleResendVaultShareEmail)
 	if err := srv.Run(mux); err != nil {
 		panic(fmt.Errorf("could not run server: %w", err))
 	}

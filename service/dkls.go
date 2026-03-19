@@ -228,14 +228,12 @@ func (t *DKLSTssService) ProcessDKLSKeyImport(req types.KeyImportRequest) (strin
 	if t.backup == nil {
 		return publicKeyECDSA, publicKeyEdDSA, nil
 	}
-	if err := t.backup.SaveVaultAndScheduleEmail(vault, req.EncryptionPassword, req.Email); err != nil {
+	if err := t.backup.SaveVault(vault, req.EncryptionPassword); err != nil {
 		t.logger.WithFields(logrus.Fields{
 			"name":  req.Name,
-			"email": req.Email,
 			"error": err,
-		}).Error("failed to save vault and schedule email")
+		}).Error("failed to save vault")
 	}
-	// send email to user with vault backup
 	return publicKeyECDSA, publicKeyEdDSA, nil
 }
 
@@ -565,5 +563,5 @@ func (t *DKLSTssService) ProcessCreateMldsa(req types.CreateMldsaRequest) error 
 	})
 	vault.PublicKeyMldsa44 = mldsaPublicKey
 
-	return t.backup.SaveVaultAndScheduleEmail(vault, req.EncryptionPassword, req.Email)
+	return t.backup.SaveVault(vault, req.EncryptionPassword)
 }

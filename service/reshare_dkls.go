@@ -22,7 +22,7 @@ func (t *DKLSTssService) ProcessReshare(vault *vaultType.Vault,
 	sessionID string,
 	hexEncryptionKey string,
 	encryptionPassword string,
-	email string, noBackup bool) error {
+	noBackup bool) error {
 	if vault.Name == "" {
 		return fmt.Errorf("vault name is empty")
 	}
@@ -120,7 +120,7 @@ func (t *DKLSTssService) ProcessReshare(vault *vaultType.Vault,
 		LibType:       keygenType.LibType_LIB_TYPE_DKLS,
 		ResharePrefix: "",
 	}
-	return t.backup.SaveVaultAndScheduleEmail(newVault, encryptionPassword, email)
+	return t.backup.SaveVault(newVault, encryptionPassword)
 }
 func (t *DKLSTssService) reshareWithRetry(vault *vaultType.Vault,
 	sessionID string,
