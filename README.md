@@ -2,7 +2,7 @@
 # Vultiserver
 `VultiServer`, is a simple TSS server providing Keygen, Keysign, and Reshare services. 
 
-Devs and Users can then use Fast Vaults: Allows creating a 2/2 vault with one mobile device, with VultiServer as the second party. Users can sign transactions with one device. The Server's encrypted vault share is emailed to the user for their full self-custody. 
+Devs and Users can then use Fast Vaults: Allows creating a 2/2 vault with one mobile device, with VultiServer as the second party. Users can sign transactions with one device.
 
 VultiServer consists of two components:
 - API Server: An HTTP server that handles keygen and keysign requests from clients.
@@ -29,7 +29,6 @@ Cloudlfare managed Base URL: https:api.vultisig.com/router
   "hex_chain_code": "hex encoded chain code",
   "local_party_id": "local party id",
   "encryption_password": "password to encryption the generated vault share",
-  "email": "email of the user",
   "lib_type": "type of the library"
 }
 ```
@@ -39,9 +38,8 @@ Cloudlfare managed Base URL: https:api.vultisig.com/router
 - hex_encryption_key: 32-byte hex encoded string for encryption/decryption
 - local_party_id: Identifier for VultiServer in the keygen session
 - encryption_password: Password to encrypt the vault share
-- email: Email to send the encrypted vault share
 - lib_type: Type of the library (e.g., 0 for GG20 , 1 for DKLS)
-- 
+
 ### Response
 
 Status Code: OK
@@ -57,7 +55,6 @@ Status Code: OK
   "hex_chain_code": "hex encoded chain code",
   "local_party_id": "local party id",
   "encryption_password": "password to encryption the generated vault share",
-  "email": "email of the user",
   "lib_type": "type of the library"
 }
 ```
@@ -67,9 +64,7 @@ Status Code: OK
 - hex_encryption_key: 32-byte hex encoded string for encryption/decryption
 - local_party_id: Identifier for VultiServer in the keygen session
 - encryption_password: Password to encrypt the vault share
-- email: Email to send the encrypted vault share
 - lib_type: Type of the library KeyImport it has to be 2
--
 ### Response
 
 Status Code: OK
@@ -130,7 +125,6 @@ Note: please set `x-password` header with the password to decrypt the vault shar
   "local_party_id": "local party id",
   "old_parties": ["old party id 1", "old party id 2"], 
   "encryption_password": "password to encryption the generated vault share",
-  "email": "email of the user",
   "old_reshare_prefix":"old reshare prefix",
   "lib_type": "type of the library"
 }
@@ -143,24 +137,7 @@ Note: please set `x-password` header with the password to decrypt the vault shar
 - local_party_id: Identifier for VultiServer in the reshare session
 - old_parties: List of old party IDs
 - encryption_password: Password to encrypt the vault share
-- email: Email to send the encrypted vault share
 - lib_type: Type of the library (e.g., 0 for GG20 , 1 for DKLS)
-
-## Resend vault share and verification code
-`POST` `/vault/resend` , this endpoint allow user to resend the vault share and verification code
-Note: user can only request a resend every three minutes
-
-### Resend Request
-```json
-{
-  "public_key_ecdsa": "ECDSA public key of the vault",
-  "password": "password to decrypt the vault share",
-  "email": "email of the user"
-}
-```
-## Verify code
-`GET` `/vault/verify/:public_key_ecdsa/:code` , this endpoint allow user to verify the code
-if server return http status code 200, it means the code is valid , other status code means the code is invalid
 
 ### Migrate Request
 `POST` `/vault/migrate` , this endpoint allow user to migrate the vault share from GG20 to DKLS
@@ -169,15 +146,13 @@ if server return http status code 200, it means the code is valid , other status
   "public_key": "ECDSA public key of the vault",
   "session_id": "session id for key generation",
   "hex_encryption_key": "hex encoded encryption key",
-  "encryption_password": "password to encryption the generated vault share",
-  "email": "email of the user"
+  "encryption_password": "password to encryption the generated vault share"
 }
 ```
 - public_key: ECDSA public key
 - session_id: Reshare session ID (random UUID)
 - hex_encryption_key: 32-byte hex encoded string for encryption/decryption
 - encryption_password: Password to encrypt the vault share
-- email: Email to send the encrypted vault share
 ## How to setup vultisigner to run locally?
 
 ### Prerequisites
