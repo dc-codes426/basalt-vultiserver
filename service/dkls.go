@@ -164,7 +164,6 @@ func (t *DKLSTssService) ProcessDKLSKeyImport(req types.KeyImportRequest) (strin
 		return "", "", fmt.Errorf("failed to get local state: %w", err)
 	}
 	vault := &vaultType.Vault{
-		Name:           req.Name,
 		PublicKeyEcdsa: publicKeyECDSA,
 		PublicKeyEddsa: publicKeyEdDSA,
 		Signers:        partiesJoined,
@@ -230,7 +229,6 @@ func (t *DKLSTssService) ProcessDKLSKeyImport(req types.KeyImportRequest) (strin
 	}
 	if err := t.backup.SaveVault(vault, req.EncryptionPassword); err != nil {
 		t.logger.WithFields(logrus.Fields{
-			"name":  req.Name,
 			"error": err,
 		}).Error("failed to save vault")
 	}

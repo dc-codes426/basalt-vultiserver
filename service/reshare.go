@@ -25,9 +25,6 @@ func (s *WorkerService) Reshare(vault *vaultType.Vault,
 	hexEncryptionKey,
 	serverURL string,
 	encryptionPassword string) error {
-	if vault.Name == "" {
-		return fmt.Errorf("vault name is empty")
-	}
 	if vault.LocalPartyId == "" {
 		return fmt.Errorf("local party id is empty")
 	}
@@ -144,7 +141,6 @@ func (s *WorkerService) Reshare(vault *vaultType.Vault,
 	}
 
 	newVault := &vaultType.Vault{
-		Name:           vault.Name,
 		PublicKeyEcdsa: ecdsaPubkey,
 		PublicKeyEddsa: eddsaPubkey,
 		Signers:        partiesJoined,

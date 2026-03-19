@@ -27,7 +27,6 @@ func (s *WorkerService) HandleKeyGenerationDKLS(ctx context.Context, t *asynq.Ta
 		return fmt.Errorf("invalid lib type: %d: %w", req.LibType, asynq.SkipRetry)
 	}
 	s.logger.WithFields(logrus.Fields{
-		"name":           req.Name,
 		"session":        req.SessionID,
 		"local_party_id": req.LocalPartyId,
 	}).Info("Joining keygen")
@@ -171,7 +170,6 @@ func (s *WorkerService) HandleKeygenBatch(ctx context.Context, t *asynq.Task) er
 		return fmt.Errorf("json.Unmarshal failed: %v: %w", unmarshalErr, asynq.SkipRetry)
 	}
 	s.logger.WithFields(logrus.Fields{
-		"name":           req.Name,
 		"session":        req.SessionID,
 		"local_party_id": req.LocalPartyId,
 		"protocols":      req.Protocols,
@@ -258,7 +256,6 @@ func (s *WorkerService) HandleImportBatch(ctx context.Context, t *asynq.Task) er
 		return fmt.Errorf("json.Unmarshal failed: %v: %w", unmarshalErr, asynq.SkipRetry)
 	}
 	s.logger.WithFields(logrus.Fields{
-		"name":      req.Name,
 		"session":   req.SessionID,
 		"protocols": req.Protocols,
 		"chains":    req.Chains,
@@ -301,7 +298,6 @@ func (s *WorkerService) HandleImport(ctx context.Context, t *asynq.Task) error {
 		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
 	}
 	s.logger.WithFields(logrus.Fields{
-		"name":           req.Name,
 		"session":        req.SessionID,
 		"local_party_id": req.LocalPartyId,
 	}).Info("Joining KeyImport")

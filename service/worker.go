@@ -71,7 +71,6 @@ func (s *WorkerService) HandleKeyGeneration(ctx context.Context, t *asynq.Task) 
 	}
 
 	s.logger.WithFields(logrus.Fields{
-		"name":           req.Name,
 		"session":        req.SessionID,
 		"local_party_id": req.LocalPartyId,
 	}).Info("Joining keygen")
@@ -165,7 +164,6 @@ func (s *WorkerService) HandleReshare(ctx context.Context, t *asynq.Task) error 
 	defer s.measureTime("worker.vault.reshare.latency", time.Now(), []string{})
 	s.incCounter("worker.vault.reshare", []string{})
 	s.logger.WithFields(logrus.Fields{
-		"name":           req.Name,
 		"session":        req.SessionID,
 		"local_party_id": req.LocalPartyId,
 	}).Info("reshare request")
@@ -183,7 +181,6 @@ func (s *WorkerService) HandleReshare(ctx context.Context, t *asynq.Task) error 
 		vault = localState.Vault
 	} else {
 		vault = &vaultType.Vault{
-			Name:           req.Name,
 			PublicKeyEcdsa: "",
 			PublicKeyEddsa: "",
 			HexChainCode:   req.HexChainCode,
@@ -220,7 +217,6 @@ func (s *WorkerService) HandleReshareDKLS(ctx context.Context, t *asynq.Task) er
 	defer s.measureTime("worker.vault.reshare.latency", time.Now(), []string{})
 	s.incCounter("worker.vault.reshare.dkls", []string{})
 	s.logger.WithFields(logrus.Fields{
-		"name":           req.Name,
 		"session":        req.SessionID,
 		"local_party_id": req.LocalPartyId,
 	}).Info("reshare request")
@@ -238,7 +234,6 @@ func (s *WorkerService) HandleReshareDKLS(ctx context.Context, t *asynq.Task) er
 		vault = localState.Vault
 	} else {
 		vault = &vaultType.Vault{
-			Name:           req.Name,
 			PublicKeyEcdsa: "",
 			PublicKeyEddsa: "",
 			HexChainCode:   req.HexChainCode,

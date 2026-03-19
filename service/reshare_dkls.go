@@ -23,9 +23,6 @@ func (t *DKLSTssService) ProcessReshare(vault *vaultType.Vault,
 	hexEncryptionKey string,
 	encryptionPassword string,
 	noBackup bool) error {
-	if vault.Name == "" {
-		return fmt.Errorf("vault name is empty")
-	}
 	if vault.LocalPartyId == "" {
 		return fmt.Errorf("local party id is empty")
 	}
@@ -100,7 +97,6 @@ func (t *DKLSTssService) ProcessReshare(vault *vaultType.Vault,
 		return fmt.Errorf("failed to get eddsa keyshare")
 	}
 	newVault := &vaultType.Vault{
-		Name:           vault.Name,
 		PublicKeyEcdsa: ecdsaPubkey,
 		PublicKeyEddsa: eddsaPubkey,
 		Signers:        partiesJoined,

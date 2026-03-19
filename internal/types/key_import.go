@@ -8,7 +8,6 @@ import (
 
 // KeyImportRequest is a struct that represents a request to import a key into a vault.
 type KeyImportRequest struct {
-	Name               string   `json:"name" validate:"required"`
 	SessionID          string   `json:"session_id" validate:"required"`
 	HexEncryptionKey   string   `json:"hex_encryption_key" validate:"required"` // this is the key used to encrypt and decrypt the keygen communications
 	HexChainCode       string   `json:"hex_chain_code" validate:"required"`
@@ -18,9 +17,6 @@ type KeyImportRequest struct {
 }
 
 func (req *KeyImportRequest) IsValid() error {
-	if req.Name == "" {
-		return fmt.Errorf("name is required")
-	}
 	if req.SessionID == "" {
 		return fmt.Errorf("session_id is required")
 	}
@@ -50,7 +46,6 @@ func (req *KeyImportRequest) IsValid() error {
 }
 
 type BatchImportRequest struct {
-	Name               string   `json:"name"`
 	SessionID          string   `json:"session_id"`
 	HexEncryptionKey   string   `json:"hex_encryption_key"`
 	LocalPartyId       string   `json:"local_party_id"`
@@ -60,9 +55,6 @@ type BatchImportRequest struct {
 }
 
 func (req *BatchImportRequest) IsValid() error {
-	if req.Name == "" {
-		return fmt.Errorf("name is required")
-	}
 	if req.SessionID == "" {
 		return fmt.Errorf("session_id is required")
 	}

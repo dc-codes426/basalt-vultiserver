@@ -342,7 +342,6 @@ func (t *DKLSTssService) saveVault(
 			return fmt.Errorf("ecdsa result required for new vault")
 		}
 		vault = &vaultType.Vault{
-			Name:           req.Name,
 			PublicKeyEcdsa: ecdsaResult.PublicKey,
 			Signers:        partiesJoined,
 			CreatedAt:      timestamppb.New(time.Now()),

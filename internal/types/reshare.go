@@ -15,7 +15,6 @@ const (
 
 // ReshareRequest is a struct that represents a request to reshare a vault
 type ReshareRequest struct {
-	Name               string      `json:"name"`                // name of the vault
 	PublicKey          string      `json:"public_key"`          // public key ecdsa
 	SessionID          string      `json:"session_id"`          // session id
 	HexEncryptionKey   string      `json:"hex_encryption_key"`  // hex encryption key
@@ -74,9 +73,6 @@ func (req *BatchReshareRequest) IsValid() error {
 }
 
 func (req *ReshareRequest) IsValid() error {
-	if req.Name == "" {
-		return fmt.Errorf("name is required")
-	}
 	if req.SessionID == "" {
 		return fmt.Errorf("session_id is required")
 	}

@@ -23,7 +23,6 @@ Cloudlfare managed Base URL: https:api.vultisig.com/router
 ### Keygen Request
 ```json
 {
-  "name": "My Vault",
   "session_id": "session id for key generation",
   "hex_encryption_key": "hex encoded encryption key",
   "hex_chain_code": "hex encoded chain code",
@@ -32,7 +31,6 @@ Cloudlfare managed Base URL: https:api.vultisig.com/router
   "lib_type": "type of the library"
 }
 ```
-- name: Vault name
 - session_id: Key generation session ID (random UUID)
 - hex_chain_code: 32-byte hex encoded string
 - hex_encryption_key: 32-byte hex encoded string for encryption/decryption
@@ -49,7 +47,6 @@ Status Code: OK
 ### KeyImport Request
 ```json
 {
-  "name": "My Vault",
   "session_id": "session id for key generation",
   "hex_encryption_key": "hex encoded encryption key",
   "hex_chain_code": "hex encoded chain code",
@@ -58,7 +55,6 @@ Status Code: OK
   "lib_type": "type of the library"
 }
 ```
-- name: Vault name
 - session_id: Key generation session ID (random UUID)
 - hex_chain_code: 32-byte hex encoded string
 - hex_encryption_key: 32-byte hex encoded string for encryption/decryption
@@ -103,7 +99,6 @@ Note: please set `x-password` header with the password to decrypt the vault shar
 ### Response
 ```json
 {
-  "name": "vault name",
   "public_key_ecdsa": "ECDSA public key of the vault",
   "public_key_eddsa": "EdDSA public key of the vault",
   "hex_chain_code": "hex encoded chain code",
@@ -117,7 +112,6 @@ Note: please set `x-password` header with the password to decrypt the vault shar
 ### Reshare Request
 ```json
 {
-  "name": "My Vault",
   "public_key": "ECDSA public key of the vault",
   "session_id": "session id for key generation",
   "hex_encryption_key": "hex encoded encryption key",
@@ -129,7 +123,6 @@ Note: please set `x-password` header with the password to decrypt the vault shar
   "lib_type": "type of the library"
 }
 ```
-- name: Vault name
 - public_key: ECDSA public key
 - session_id: Reshare session ID (random UUID)
 - hex_encryption_key: 32-byte hex encoded string for encryption/decryption

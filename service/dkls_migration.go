@@ -29,9 +29,6 @@ func (t *DKLSTssService) ProceeMigration(vault *vaultType.Vault,
 	encryptionPassword string) error {
 	serverURL := t.cfg.Relay.Server
 	relayClient := relay.NewRelayClient(serverURL)
-	if vault.Name == "" {
-		return fmt.Errorf("vault name is empty")
-	}
 	if vault.LocalPartyId == "" {
 		return fmt.Errorf("local party id is empty")
 	}
@@ -142,7 +139,6 @@ func (t *DKLSTssService) ProceeMigration(vault *vaultType.Vault,
 		return fmt.Errorf("failed to get eddsa keyshare")
 	}
 	newVault := &vaultType.Vault{
-		Name:           vault.Name,
 		PublicKeyEcdsa: publicKeyECDSA,
 		PublicKeyEddsa: publicKeyEdDSA,
 		Signers:        partiesJoined,

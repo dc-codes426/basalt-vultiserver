@@ -177,9 +177,9 @@ func GetVaultName(vault *vaultType.Vault) string {
 		}
 	}
 	if vault.LibType == v1.LibType_LIB_TYPE_GG20 {
-		return fmt.Sprintf("%s-%s-part%dof%d-Vultiserver.vult", vault.Name, lastFourCharOfPubKey, partIndex+1, len(vault.Signers))
+		return fmt.Sprintf("%s-part%dof%d-Vultiserver.vult", lastFourCharOfPubKey, partIndex+1, len(vault.Signers))
 	}
-	return fmt.Sprintf("%s-%s-share%dof%d-Vultiserver.vult", vault.Name, lastFourCharOfPubKey, partIndex+1, len(vault.Signers))
+	return fmt.Sprintf("%s-share%dof%d-Vultiserver.vult", lastFourCharOfPubKey, partIndex+1, len(vault.Signers))
 }
 
 func GetThreshold(value int) (int, error) {

@@ -515,7 +515,6 @@ func (s *Server) GetVault(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, types.VaultGetResponse{
-		Name:           vault.Name,
 		PublicKeyEcdsa: vault.PublicKeyEcdsa,
 		PublicKeyEddsa: vault.PublicKeyEddsa,
 		HexChainCode:   vault.HexChainCode,

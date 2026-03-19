@@ -187,7 +187,6 @@ func (t *DKLSTssService) saveImportedVault(
 	}
 
 	vault := &vaultType.Vault{
-		Name:           req.Name,
 		PublicKeyEcdsa: ecdsaResult.PublicKey,
 		Signers:        partiesJoined,
 		CreatedAt:      timestamppb.New(time.Now()),

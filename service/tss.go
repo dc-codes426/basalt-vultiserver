@@ -175,7 +175,6 @@ func (s *WorkerService) BackupVault(req types.VaultCreateRequest,
 	}
 
 	vault := &vaultType.Vault{
-		Name:           req.Name,
 		PublicKeyEcdsa: ecdsaPubkey,
 		PublicKeyEddsa: eddsaPubkey,
 		Signers:        partiesJoined,
