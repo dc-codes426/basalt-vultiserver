@@ -1,0 +1,880 @@
+openapi: 3.1.0
+info:
+  title: Vultiserver API
+  description: |
+    TSS (Threshold Signature Scheme) server for keygen, keysign, and reshare
+    operations supporting ECDSA, EdDSA, and MLDSA via GG20 and DKLS protocols.
+
+    Vultiserver runs an Echo HTTP server and an asynq worker for async TSS
+    operations backed by Redis. Most mutating endpoints enqueue an async task
+    and return immediately.
+  version: 1.0.0
+  contact:
+    name: Vultisig
+    url: https://github.com/vultisig/vultiserver
+  license:
+    name: MIT
+    url: https://github.com/vultisig/vultiserver/blob/main/LICENSE
+
+servers:
+  - url: https://api.vultisig.com/router
+    description: Production
+  - url: http://localhost:8080
+    description: Local development
+
+paths:
+  /ping:
+    get:
+      operationId: ping
+      summary: Health check
+      description: Returns a simple string indicating the server is running.
+      tags: [Health]
+      responses:
+        "200":
+          description: Server is healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Vultiserver is running
+
+  /getDerivedPublicKey:
+    get:
+      operationId: getDerivedPublicKey
+      summary: Derive a public key
+      description: |
+        Derives a child public key from a parent public key using the given
+        chain code and derivation path. Supports both ECDSA and EdDSA curves.
+      tags: [Utility]
+      parameters:
+        - name: publicKey
+          in: query
+          required: true
+          description: Base public key (hex-encoded)
+          schema:
+            type: string
+        - name: hexChainCode
+          in: query
+          required: true
+          description: Chain code in hexadecimal format
+          schema:
+            type: string
+        - name: derivePath
+          in: query
+          required: true
+          description: BIP-32 style derivation path (e.g. `m/44'/60'/0'/0/0`)
+          schema:
+            type: string
+        - name: isEdDSA
+          in: query
+          required: false
+          description: Use EdDSA curve instead of ECDSA. Defaults to false.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: Derived public key
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Hex-encoded derived public key
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /vault/create:
+    post:
+      operationId: createVault
+      summary: Create a new vault (keygen)
+      description: |
+        Initiates a new vault key generation ceremony. Enqueues an async
+        `key:generation` (GG20) or `key:generationDKLS` (DKLS) task with a
+        7-minute timeout. The server participates as one party in the TSS
+        protocol.
+      tags: [Vault]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VaultCreateRequest"
+      responses:
+        "200":
+          description: Vault creation initiated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VaultCreateResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /vault/reshare:
+    post:
+      operationId: reshareVault
+      summary: Reshare vault key shares
+      description: |
+        Redistributes vault shares among a new set of parties. Enqueues an
+        async `key:reshare` (GG20) or `key:reshareDKLS` (DKLS) task with an
+        8-minute timeout. Requires a minimum 6-character encryption password.
+      tags: [Vault]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReshareRequest"
+      responses:
+        "204":
+          description: Reshare task enqueued
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /vault/migrate:
+    post:
+      operationId: migrateVault
+      summary: Migrate vault from GG20 to DKLS
+      description: |
+        Converts an existing GG20 vault to the DKLS protocol. Enqueues an
+        async `key:migrate` task with a 7-minute timeout.
+      tags: [Vault]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MigrationRequest"
+      responses:
+        "204":
+          description: Migration task enqueued
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /vault/import:
+    post:
+      operationId: importVault
+      summary: Import an existing vault
+      description: |
+        Imports an existing vault via key import. The lib_type is forced to
+        `KeyImport` (2). Enqueues an async `key:import` task with a 7-minute
+        timeout.
+      tags: [Vault]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KeyImportRequest"
+      responses:
+        "204":
+          description: Import task enqueued
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /vault/get/{publicKeyECDSA}:
+    get:
+      operationId: getVault
+      summary: Retrieve vault metadata
+      description: |
+        Retrieves and decrypts a vault backup file by its ECDSA public key.
+        The encryption password must be provided via the `x-password` header
+        (base64-encoded or plaintext).
+      tags: [Vault]
+      parameters:
+        - $ref: "#/components/parameters/publicKeyECDSA"
+        - name: x-password
+          in: header
+          required: true
+          description: |
+            Encryption password for vault decryption. May be base64-encoded
+            or sent as plaintext; the server attempts base64 decoding first.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Vault metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VaultGetResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /vault/exist/{publicKeyECDSA}:
+    get:
+      operationId: existVault
+      summary: Check if a vault exists
+      description: |
+        Checks whether a vault backup file exists for the given ECDSA public key.
+      tags: [Vault]
+      parameters:
+        - $ref: "#/components/parameters/publicKeyECDSA"
+      responses:
+        "200":
+          description: Vault exists
+        "404":
+          description: Vault not found
+
+  /vault/sign:
+    post:
+      operationId: signMessages
+      summary: Sign messages with vault key
+      description: |
+        Enqueues a signing operation for one or more messages. Returns a task
+        ID that can be used to poll for results. Enqueues an async `key:sign`
+        (GG20) or `key:signDKLS` (DKLS) task with a 2-minute timeout.
+      tags: [Signing]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KeysignRequest"
+      responses:
+        "200":
+          description: Signing task enqueued; returns the async task ID
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Asynq task ID for polling the signing result
+                example: "asynq:task:abc123"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /vault/mldsa:
+    post:
+      operationId: createMldsaVault
+      summary: Add ML-DSA key to existing vault
+      description: |
+        Adds a post-quantum ML-DSA (Dilithium) key to an existing vault.
+        The vault must already exist in block storage. Enqueues an async
+        `key:createMldsa` task with a 5-minute timeout.
+      tags: [Vault]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMldsaRequest"
+      responses:
+        "200":
+          description: ML-DSA key creation task enqueued
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /vault/resend:
+    post:
+      operationId: resendVaultEmail
+      summary: Resend vault backup email
+      description: |
+        Resends the vault backup file to the specified email address. Subject
+        to a 3-minute cooldown between resends per vault. Enqueues a
+        `key:resendVaultShareEmail` task.
+      tags: [Vault]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VaultResendRequest"
+      responses:
+        "200":
+          description: Resend email task enqueued
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          description: Rate limited — 3-minute cooldown between resends
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /vault/verify/{publicKeyECDSA}/{code}:
+    get:
+      operationId: verifyCode
+      summary: Verify email confirmation code
+      description: |
+        Verifies a confirmation code sent via email for the given vault.
+        The code is compared against a value stored in Redis.
+      tags: [Vault]
+      parameters:
+        - $ref: "#/components/parameters/publicKeyECDSA"
+        - name: code
+          in: path
+          required: true
+          description: Verification code received via email
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Code is valid
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /vault/batch/keygen:
+    post:
+      operationId: createVaultBatch
+      summary: Batch vault creation
+      description: |
+        Initiates vault creation across multiple protocols in a single request.
+        Enqueues an async `key:keygenBatch` task with a 7-minute timeout.
+      tags: [Batch]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchVaultRequest"
+      responses:
+        "204":
+          description: Batch keygen task enqueued
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /vault/batch/reshare:
+    post:
+      operationId: reshareVaultBatch
+      summary: Batch vault reshare
+      description: |
+        Initiates vault resharing across multiple protocols in a single request.
+        Enqueues an async `key:reshareBatch` task with an 8-minute timeout.
+      tags: [Batch]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchReshareRequest"
+      responses:
+        "204":
+          description: Batch reshare task enqueued
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /vault/batch/import:
+    post:
+      operationId: importVaultBatch
+      summary: Batch vault import
+      description: |
+        Imports vaults across multiple protocols in a single request. Protocols
+        must not contain duplicates. Enqueues an async `key:importBatch` task
+        with a 7-minute timeout.
+      tags: [Batch]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchImportRequest"
+      responses:
+        "204":
+          description: Batch import task enqueued
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+components:
+  parameters:
+    publicKeyECDSA:
+      name: publicKeyECDSA
+      in: path
+      required: true
+      description: 66-character hex-encoded ECDSA public key identifying the vault
+      schema:
+        type: string
+        pattern: "^[0-9a-fA-F]{66}$"
+        minLength: 66
+        maxLength: 66
+
+  responses:
+    BadRequest:
+      description: Validation error or malformed request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    TooManyRequests:
+      description: Rate limit exceeded (5 req/s, 30 burst, 5-min window)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Human-readable error message
+          example: "fail to parse request, err: invalid session_id"
+
+    LibType:
+      type: integer
+      description: TSS library/protocol type
+      enum: [0, 1, 2]
+      x-enum-varnames: [GG20, DKLS, KeyImport]
+      x-enum-descriptions:
+        - GG20 threshold signature protocol
+        - DKLS threshold signature protocol
+        - Key import mode
+
+    ReshareType:
+      type: integer
+      description: Reshare operation type
+      enum: [0, 1]
+      x-enum-varnames: [Normal, Plugin]
+
+    VaultCreateRequest:
+      type: object
+      required:
+        - name
+        - session_id
+        - hex_encryption_key
+        - hex_chain_code
+        - encryption_password
+        - email
+      properties:
+        name:
+          type: string
+          description: Human-readable vault name
+        session_id:
+          type: string
+          format: uuid
+          description: Unique session identifier (UUID)
+        hex_encryption_key:
+          type: string
+          description: 32-byte hex-encoded encryption key
+          pattern: "^[0-9a-fA-F]{64}$"
+        hex_chain_code:
+          type: string
+          description: Hex-encoded chain code for key derivation
+        local_party_id:
+          type: string
+          description: Identifier for the local TSS party (optional; server assigns one if omitted)
+        encryption_password:
+          type: string
+          description: Password used to encrypt the vault backup
+        email:
+          type: string
+          format: email
+          description: Email address to send the vault backup to
+        lib_type:
+          $ref: "#/components/schemas/LibType"
+
+    VaultCreateResponse:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Vault name
+        session_id:
+          type: string
+          format: uuid
+          description: Session identifier
+        hex_encryption_key:
+          type: string
+          description: Hex-encoded encryption key
+        hex_chain_code:
+          type: string
+          description: Hex-encoded chain code
+        keygen_msg:
+          type: string
+          description: Encoded message for QR code display during keygen ceremony
+
+    VaultGetResponse:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Vault name
+        public_key_ecdsa:
+          type: string
+          description: Hex-encoded ECDSA public key
+        public_key_eddsa:
+          type: string
+          description: Hex-encoded EdDSA public key
+        hex_chain_code:
+          type: string
+          description: Hex-encoded chain code
+        local_party_id:
+          type: string
+          description: Local TSS party identifier
+
+    ReshareRequest:
+      type: object
+      required:
+        - name
+        - public_key
+        - session_id
+        - hex_encryption_key
+        - hex_chain_code
+        - old_parties
+        - encryption_password
+        - email
+      properties:
+        name:
+          type: string
+          description: Vault name
+        public_key:
+          type: string
+          description: Existing vault public key
+        session_id:
+          type: string
+          format: uuid
+          description: Unique session identifier (UUID)
+        hex_encryption_key:
+          type: string
+          description: 32-byte hex-encoded encryption key
+          pattern: "^[0-9a-fA-F]{64}$"
+        hex_chain_code:
+          type: string
+          description: Hex-encoded chain code
+        local_party_id:
+          type: string
+          description: Local TSS party identifier
+        old_parties:
+          type: array
+          items:
+            type: string
+          description: List of party IDs from the previous share set
+        encryption_password:
+          type: string
+          minLength: 6
+          description: Encryption password (minimum 6 characters)
+        email:
+          type: string
+          format: email
+          description: Email address for vault backup delivery
+        old_reshare_prefix:
+          type: string
+          description: Prefix from previous reshare operation (if any)
+        lib_type:
+          $ref: "#/components/schemas/LibType"
+        reshare_type:
+          $ref: "#/components/schemas/ReshareType"
+
+    MigrationRequest:
+      type: object
+      required:
+        - public_key
+        - session_id
+        - hex_encryption_key
+        - encryption_password
+        - email
+      properties:
+        public_key:
+          type: string
+          description: 66-character hex-encoded ECDSA public key of the vault to migrate
+          pattern: "^[0-9a-fA-F]{66}$"
+        session_id:
+          type: string
+          format: uuid
+          description: Unique session identifier (UUID)
+        hex_encryption_key:
+          type: string
+          description: 32-byte hex-encoded encryption key
+          pattern: "^[0-9a-fA-F]{64}$"
+        encryption_password:
+          type: string
+          description: Encryption password for the vault
+        email:
+          type: string
+          format: email
+          description: Email address for vault backup delivery
+
+    KeyImportRequest:
+      type: object
+      required:
+        - name
+        - session_id
+        - hex_encryption_key
+        - hex_chain_code
+        - encryption_password
+        - email
+        - chains
+      properties:
+        name:
+          type: string
+          description: Vault name
+        session_id:
+          type: string
+          format: uuid
+          description: Unique session identifier (UUID)
+        hex_encryption_key:
+          type: string
+          description: 32-byte hex-encoded encryption key
+          pattern: "^[0-9a-fA-F]{64}$"
+        hex_chain_code:
+          type: string
+          description: Hex-encoded chain code
+        local_party_id:
+          type: string
+          description: Local TSS party identifier
+        encryption_password:
+          type: string
+          description: Encryption password for the vault
+        email:
+          type: string
+          format: email
+          description: Email address for vault backup delivery
+        chains:
+          type: array
+          items:
+            type: string
+          description: List of blockchain chains to import (e.g. BTC, ETH)
+
+    KeysignRequest:
+      type: object
+      required:
+        - public_key
+        - messages
+        - session
+        - hex_encryption_key
+        - derive_path
+        - vault_password
+      properties:
+        public_key:
+          type: string
+          description: Public key identifying the vault backup file
+        messages:
+          type: array
+          items:
+            type: string
+          description: Hex-encoded messages to sign
+          minItems: 1
+        session:
+          type: string
+          format: uuid
+          description: Unique session identifier (UUID)
+        hex_encryption_key:
+          type: string
+          description: 32-byte hex-encoded encryption key
+          pattern: "^[0-9a-fA-F]{64}$"
+        derive_path:
+          type: string
+          description: BIP-32 derivation path for the signing key
+        is_ecdsa:
+          type: boolean
+          description: Use ECDSA signing (true) or EdDSA (false)
+          default: false
+        vault_password:
+          type: string
+          description: Password to decrypt the vault backup
+        chain:
+          type: string
+          description: Target blockchain (e.g. BTC, ETH)
+        mldsa:
+          type: boolean
+          description: Use ML-DSA (post-quantum Dilithium) signing
+          default: false
+
+    CreateMldsaRequest:
+      type: object
+      required:
+        - public_key
+        - session_id
+        - hex_encryption_key
+        - encryption_password
+        - email
+      properties:
+        public_key:
+          type: string
+          description: 66-character hex-encoded ECDSA public key of the existing vault
+          pattern: "^[0-9a-fA-F]{66}$"
+        session_id:
+          type: string
+          format: uuid
+          description: Unique session identifier (UUID)
+        hex_encryption_key:
+          type: string
+          description: 32-byte hex-encoded encryption key
+          pattern: "^[0-9a-fA-F]{64}$"
+        encryption_password:
+          type: string
+          description: Encryption password for the vault
+        email:
+          type: string
+          format: email
+          description: Email address for vault backup delivery
+
+    VaultResendRequest:
+      type: object
+      required:
+        - public_key_ecdsa
+        - password
+        - email
+      properties:
+        public_key_ecdsa:
+          type: string
+          description: 66-character hex-encoded ECDSA public key
+        password:
+          type: string
+          description: Vault encryption password
+        email:
+          type: string
+          format: email
+          description: Email address to resend the vault backup to
+
+    BatchVaultRequest:
+      type: object
+      required:
+        - name
+        - session_id
+        - hex_encryption_key
+        - hex_chain_code
+        - encryption_password
+        - email
+        - protocols
+      properties:
+        name:
+          type: string
+          description: Vault name
+        session_id:
+          type: string
+          format: uuid
+          description: Unique session identifier (UUID)
+        hex_encryption_key:
+          type: string
+          description: 32-byte hex-encoded encryption key
+          pattern: "^[0-9a-fA-F]{64}$"
+        hex_chain_code:
+          type: string
+          description: Hex-encoded chain code
+        local_party_id:
+          type: string
+          description: Local TSS party identifier
+        encryption_password:
+          type: string
+          description: Encryption password for the vault
+        email:
+          type: string
+          format: email
+          description: Email address for vault backup delivery
+        lib_type:
+          $ref: "#/components/schemas/LibType"
+        protocols:
+          type: array
+          items:
+            type: string
+          description: List of protocols to run keygen across
+        public_key:
+          type: string
+          description: Existing public key (optional, for adding protocols to existing vault)
+
+    BatchReshareRequest:
+      type: object
+      required:
+        - public_key
+        - session_id
+        - hex_encryption_key
+        - encryption_password
+        - email
+        - old_parties
+        - protocols
+      properties:
+        public_key:
+          type: string
+          description: Existing vault public key
+        session_id:
+          type: string
+          format: uuid
+          description: Unique session identifier (UUID)
+        hex_encryption_key:
+          type: string
+          description: 32-byte hex-encoded encryption key
+          pattern: "^[0-9a-fA-F]{64}$"
+        local_party_id:
+          type: string
+          description: Local TSS party identifier
+        encryption_password:
+          type: string
+          description: Encryption password for the vault
+        email:
+          type: string
+          format: email
+          description: Email address for vault backup delivery
+        old_parties:
+          type: array
+          items:
+            type: string
+          description: List of party IDs from the previous share set
+        protocols:
+          type: array
+          items:
+            type: string
+          description: List of protocols to reshare across
+
+    BatchImportRequest:
+      type: object
+      required:
+        - name
+        - session_id
+        - hex_encryption_key
+        - encryption_password
+        - email
+        - protocols
+        - chains
+      properties:
+        name:
+          type: string
+          description: Vault name
+        session_id:
+          type: string
+          format: uuid
+          description: Unique session identifier (UUID)
+        hex_encryption_key:
+          type: string
+          description: 32-byte hex-encoded encryption key
+          pattern: "^[0-9a-fA-F]{64}$"
+        local_party_id:
+          type: string
+          description: Local TSS party identifier
+        encryption_password:
+          type: string
+          description: Encryption password for the vault
+        email:
+          type: string
+          format: email
+          description: Email address for vault backup delivery
+        protocols:
+          type: array
+          items:
+            type: string
+          description: List of protocols to import across (must not contain duplicates)
+          uniqueItems: true
+        chains:
+          type: array
+          items:
+            type: string
+          description: List of blockchain chains to import
+
+tags:
+  - name: Health
+    description: Server health and liveness
+  - name: Utility
+    description: Cryptographic utility endpoints
+  - name: Vault
+    description: Vault lifecycle — create, reshare, migrate, import, retrieve, verify
+  - name: Signing
+    description: Message signing operations
+  - name: Batch
+    description: Multi-protocol batch operations
