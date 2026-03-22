@@ -166,3 +166,4 @@ see config-example.yaml
 - Removed email notification functionality
 - Removed demo Makefile
 - Removed vault `name` field from all API requests, responses, and internal usage
+- Made config.yaml optional — environment variables can be used instead (required for Phala TEE deployment)

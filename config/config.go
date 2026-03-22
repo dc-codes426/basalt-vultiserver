@@ -1,8 +1,6 @@
 package config
 
 import (
-	"fmt"
-
 	"github.com/spf13/viper"
 )
 
@@ -39,23 +37,38 @@ func GetConfigure() (*Config, error) {
 	viper.AddConfigPath(".")
 	viper.AutomaticEnv()
 
-	viper.SetDefault("Server.Port", 8080)
-	viper.SetDefault("Server.Host", "localhost")
-	viper.SetDefault("Server.VaultsFilePath", "vaults")
-	viper.SetDefault("Redis.Host", "localhost")
-	viper.SetDefault("Redis.Port", "6379")
-	viper.SetDefault("Redis.User", "")
-	viper.SetDefault("Redis.Password", "")
-	viper.SetDefault("Redis.DB", 0)
-	viper.SetDefault("Relay.Server", "https://api.vultisig.com/router")
+	viper.SetDefault("server.port", 8080)
+	viper.SetDefault("server.host", "localhost")
+	viper.SetDefault("server.vaults_file_path", "vaults")
+	viper.SetDefault("redis.host", "localhost")
+	viper.SetDefault("redis.port", "6379")
+	viper.SetDefault("redis.user", "")
+	viper.SetDefault("redis.password", "")
+	viper.SetDefault("redis.db", 0)
+	viper.SetDefault("relay.server", "https://api.vultisig.com/router")
 
-	if err := viper.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("fail to reading config file, %w", err)
-	}
+	// Bind env vars so Unmarshal picks them up without a config file.
+	_ = viper.BindEnv("server.port", "SERVER_PORT")
+	_ = viper.BindEnv("server.host", "SERVER_HOST")
+	_ = viper.BindEnv("server.vaults_file_path", "SERVER_VAULTS_PATH")
+	_ = viper.BindEnv("redis.host", "REDIS_HOST")
+	_ = viper.BindEnv("redis.port", "REDIS_PORT")
+	_ = viper.BindEnv("redis.user", "REDIS_USER")
+	_ = viper.BindEnv("redis.password", "REDIS_PASSWORD")
+	_ = viper.BindEnv("redis.db", "REDIS_DB")
+	_ = viper.BindEnv("relay.server", "RELAY_SERVER")
+	_ = viper.BindEnv("block_storage.host", "BLOCK_STORAGE_HOST")
+	_ = viper.BindEnv("block_storage.region", "BLOCK_STORAGE_REGION")
+	_ = viper.BindEnv("block_storage.access_key", "BLOCK_STORAGE_ACCESS_KEY")
+	_ = viper.BindEnv("block_storage.secret", "BLOCK_STORAGE_SECRET")
+	_ = viper.BindEnv("block_storage.bucket", "BLOCK_STORAGE_BUCKET")
+
+	// Config file is optional — env vars alone are sufficient.
+	_ = viper.ReadInConfig()
+
 	var cfg Config
-	err := viper.Unmarshal(&cfg)
-	if err != nil {
-		return nil, fmt.Errorf("unable to decode into struct, %w", err)
+	if err := viper.Unmarshal(&cfg); err != nil {
+		return nil, err
 	}
 	return &cfg, nil
 }
