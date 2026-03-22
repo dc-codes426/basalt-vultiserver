@@ -102,10 +102,6 @@ paths:
       responses:
         "200":
           description: Vault creation initiated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/VaultCreateResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "429":
@@ -446,16 +442,11 @@ components:
     VaultCreateRequest:
       type: object
       required:
-        - name
         - session_id
         - hex_encryption_key
         - hex_chain_code
         - encryption_password
-        - email
       properties:
-        name:
-          type: string
-          description: Human-readable vault name
         session_id:
           type: string
           format: uuid
@@ -473,39 +464,12 @@ components:
         encryption_password:
           type: string
           description: Password used to encrypt the vault backup
-        email:
-          type: string
-          format: email
-          description: Email address to send the vault backup to
         lib_type:
           $ref: "#/components/schemas/LibType"
-
-    VaultCreateResponse:
-      type: object
-      properties:
-        name:
-          type: string
-          description: Vault name
-        session_id:
-          type: string
-          format: uuid
-          description: Session identifier
-        hex_encryption_key:
-          type: string
-          description: Hex-encoded encryption key
-        hex_chain_code:
-          type: string
-          description: Hex-encoded chain code
-        keygen_msg:
-          type: string
-          description: Encoded message for QR code display during keygen ceremony
 
     VaultGetResponse:
       type: object
       properties:
-        name:
-          type: string
-          description: Vault name
         public_key_ecdsa:
           type: string
           description: Hex-encoded ECDSA public key
@@ -522,18 +486,13 @@ components:
     ReshareRequest:
       type: object
       required:
-        - name
         - public_key
         - session_id
         - hex_encryption_key
         - hex_chain_code
         - old_parties
         - encryption_password
-        - email
       properties:
-        name:
-          type: string
-          description: Vault name
         public_key:
           type: string
           description: Existing vault public key
@@ -560,10 +519,6 @@ components:
           type: string
           minLength: 6
           description: Encryption password (minimum 6 characters)
-        email:
-          type: string
-          format: email
-          description: Email address for vault backup delivery
         old_reshare_prefix:
           type: string
           description: Prefix from previous reshare operation (if any)
@@ -579,7 +534,6 @@ components:
         - session_id
         - hex_encryption_key
         - encryption_password
-        - email
       properties:
         public_key:
           type: string
@@ -596,25 +550,16 @@ components:
         encryption_password:
           type: string
           description: Encryption password for the vault
-        email:
-          type: string
-          format: email
-          description: Email address for vault backup delivery
 
     KeyImportRequest:
       type: object
       required:
-        - name
         - session_id
         - hex_encryption_key
         - hex_chain_code
         - encryption_password
-        - email
         - chains
       properties:
-        name:
-          type: string
-          description: Vault name
         session_id:
           type: string
           format: uuid
@@ -632,10 +577,6 @@ components:
         encryption_password:
           type: string
           description: Encryption password for the vault
-        email:
-          type: string
-          format: email
-          description: Email address for vault backup delivery
         chains:
           type: array
           items:
@@ -694,7 +635,6 @@ components:
         - session_id
         - hex_encryption_key
         - encryption_password
-        - email
       properties:
         public_key:
           type: string
@@ -711,17 +651,12 @@ components:
         encryption_password:
           type: string
           description: Encryption password for the vault
-        email:
-          type: string
-          format: email
-          description: Email address for vault backup delivery
 
     VaultResendRequest:
       type: object
       required:
         - public_key_ecdsa
         - password
-        - email
       properties:
         public_key_ecdsa:
           type: string
@@ -729,25 +664,16 @@ components:
         password:
           type: string
           description: Vault encryption password
-        email:
-          type: string
-          format: email
-          description: Email address to resend the vault backup to
 
     BatchVaultRequest:
       type: object
       required:
-        - name
         - session_id
         - hex_encryption_key
         - hex_chain_code
         - encryption_password
-        - email
         - protocols
       properties:
-        name:
-          type: string
-          description: Vault name
         session_id:
           type: string
           format: uuid
@@ -765,10 +691,6 @@ components:
         encryption_password:
           type: string
           description: Encryption password for the vault
-        email:
-          type: string
-          format: email
-          description: Email address for vault backup delivery
         lib_type:
           $ref: "#/components/schemas/LibType"
         protocols:
@@ -787,7 +709,6 @@ components:
         - session_id
         - hex_encryption_key
         - encryption_password
-        - email
         - old_parties
         - protocols
       properties:
@@ -808,10 +729,6 @@ components:
         encryption_password:
           type: string
           description: Encryption password for the vault
-        email:
-          type: string
-          format: email
-          description: Email address for vault backup delivery
         old_parties:
           type: array
           items:
@@ -826,17 +743,12 @@ components:
     BatchImportRequest:
       type: object
       required:
-        - name
         - session_id
         - hex_encryption_key
         - encryption_password
-        - email
         - protocols
         - chains
       properties:
-        name:
-          type: string
-          description: Vault name
         session_id:
           type: string
           format: uuid
@@ -851,10 +763,6 @@ components:
         encryption_password:
           type: string
           description: Encryption password for the vault
-        email:
-          type: string
-          format: email
-          description: Email address for vault backup delivery
         protocols:
           type: array
           items:
