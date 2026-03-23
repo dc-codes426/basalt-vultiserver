@@ -73,6 +73,7 @@ func (s *Server) StartServer() error {
 	grp := e.Group("/vault")
 
 	grp.POST("/create", s.CreateVault)
+	grp.POST("/create/check", s.CheckVaultCreation)
 	grp.POST("/reshare", s.ReshareVault)
 	grp.POST("/migrate", s.MigrateVault)
 	grp.POST("/import", s.ImportVault)
@@ -166,7 +167,7 @@ func (s *Server) CreateVault(c echo.Context) error {
 	} else {
 		typeName = tasks.TypeKeyGenerationDKLS
 	}
-	_, err = s.client.Enqueue(asynq.NewTask(typeName, buf),
+	ti, err := s.client.Enqueue(asynq.NewTask(typeName, buf),
 		asynq.MaxRetry(-1),
 		asynq.Timeout(7*time.Minute),
 		asynq.Retention(10*time.Minute),
@@ -174,7 +175,53 @@ func (s *Server) CreateVault(c echo.Context) error {
 	if err != nil {
 		return fmt.Errorf("fail to enqueue task, err: %w", err)
 	}
+
+	taskKey := "keygen:task:" + req.SessionID
+	if err := s.redis.Set(c.Request().Context(), taskKey, ti.ID, 10*time.Minute); err != nil {
+		s.logger.Errorf("fail to store task mapping, err: %v", err)
+	}
+
 	return c.NoContent(http.StatusOK)
+}
+
+func (s *Server) CheckVaultCreation(c echo.Context) error {
+	var req types.VaultCreateCheckRequest
+	if err := c.Bind(&req); err != nil {
+		return fmt.Errorf("fail to parse request, err: %w", err)
+	}
+	if err := req.IsValid(); err != nil {
+		return fmt.Errorf("invalid request, err: %w", err)
+	}
+
+	taskKey := "keygen:task:" + req.SessionID
+	taskID, err := s.redis.Get(c.Request().Context(), taskKey)
+	if err != nil || taskID == "" {
+		return c.JSON(http.StatusNotFound, types.Error{Message: "no ceremony found for the given session"})
+	}
+
+	taskInfo, err := s.inspector.GetTaskInfo(tasks.QUEUE_NAME, taskID)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, types.Error{Message: "task not found"})
+	}
+
+	if taskInfo.State == asynq.TaskStateCompleted {
+		var result struct {
+			ECDSAPublicKey string
+			EDDSAPublicKey string
+		}
+		if err := json.Unmarshal(taskInfo.Result, &result); err != nil {
+			return fmt.Errorf("fail to unmarshal task result, err: %w", err)
+		}
+		return c.JSON(http.StatusOK, types.VaultCreateCheckResponse{
+			Status:         "complete",
+			PublicKeyEcdsa: result.ECDSAPublicKey,
+			PublicKeyEddsa: result.EDDSAPublicKey,
+		})
+	}
+
+	return c.JSON(http.StatusOK, types.VaultCreateCheckResponse{
+		Status: "ongoing",
+	})
 }
 
 func (s *Server) CreateVaultBatch(c echo.Context) error {

@@ -7,6 +7,11 @@ import (
 	"github.com/google/uuid"
 )
 
+// Error is a standard error response body.
+type Error struct {
+	Message string `json:"message"`
+}
+
 type LibType int
 
 const (
@@ -136,6 +141,28 @@ func ContainsProtocol(list []string, name string) bool {
 		}
 	}
 	return false
+}
+
+// VaultCreateCheckRequest is a request to check the status of an ongoing vault creation ceremony.
+type VaultCreateCheckRequest struct {
+	SessionID string `json:"session_id" validate:"required"`
+}
+
+func (req *VaultCreateCheckRequest) IsValid() error {
+	if req.SessionID == "" {
+		return fmt.Errorf("session_id is required")
+	}
+	if _, err := uuid.Parse(req.SessionID); err != nil {
+		return fmt.Errorf("session_id is not valid")
+	}
+	return nil
+}
+
+// VaultCreateCheckResponse is the response for a vault creation status check.
+type VaultCreateCheckResponse struct {
+	Status         string `json:"status"`                      // "ongoing" or "complete"
+	PublicKeyEcdsa string `json:"public_key_ecdsa,omitempty"`
+	PublicKeyEddsa string `json:"public_key_eddsa,omitempty"`
 }
 
 // VaultCreateResponse is a struct that represents a response to create a new vault

@@ -107,6 +107,38 @@ paths:
         "429":
           $ref: "#/components/responses/TooManyRequests"
 
+  /vault/create/check:
+    post:
+      operationId: checkVaultCreation
+      summary: Check vault creation status
+      description: |
+        Polls the status of an in-progress vault key generation ceremony.
+        Returns "ongoing" while the ceremony is still running, or the resulting
+        public keys once the ceremony completes. The server retains ceremony
+        state until this endpoint is called and returns a completed result.
+      tags: [Vault]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VaultCreateCheckRequest"
+      responses:
+        "200":
+          description: Ceremony status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VaultCreateCheckResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          description: No ceremony found for the given session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /vault/reshare:
     post:
       operationId: reshareVault
@@ -466,6 +498,32 @@ components:
           description: Password used to encrypt the vault backup
         lib_type:
           $ref: "#/components/schemas/LibType"
+
+    VaultCreateCheckRequest:
+      type: object
+      required:
+        - session_id
+      properties:
+        session_id:
+          type: string
+          format: uuid
+          description: Session identifier from the original /vault/create request
+
+    VaultCreateCheckResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [ongoing, complete]
+          description: '"ongoing" while the ceremony is running, "complete" when finished'
+        public_key_ecdsa:
+          type: string
+          description: Hex-encoded ECDSA public key (present when status is "complete")
+        public_key_eddsa:
+          type: string
+          description: Hex-encoded EdDSA public key (present when status is "complete")
 
     VaultGetResponse:
       type: object
